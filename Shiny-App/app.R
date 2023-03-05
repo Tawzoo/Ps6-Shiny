@@ -1,42 +1,37 @@
 
 library(shiny)
+library(tidyverse)
+library(plotly)
+
+Nfl <-  read_delim("Basic_Stats.csv")
 
 ui <- fluidPage(
 
-    # Application title
-    titlePanel("Old Faithful Geyser Data"),
-
-    # Sidebar with a slider input for number of bins 
-    sidebarLayout(
-        sidebarPanel(
-            sliderInput("bins",
-                        "Number of bins:",
-                        min = 1,
-                        max = 50,
-                        value = 30)
-        ),
-
-        # Show a plot of the generated distribution
-        mainPanel(
-           plotOutput("distPlot")
-        )
-    )
+    titlePanel("NFL player statistics "),
+    h6("Tawsif Ahmed - Info 201 Winter"),
+    tabsetPanel(
+      tabPanel("About",
+              p("This apps uses the data collected about NFL players 
+                throughtout the league", strong("Kaggle"), "which ranges form 
+                1920 to 2016"),
+              p("The weights are measured in lbs and the height are in inches"),
+              p("The dataset contains", em(nrow(Nfl)), "observations", em(ncol(Nfl)), " variables"),
+      ),
+      mainPanel(
+        p("Here are some samples from the data "),
+        dataTableOutput("sample")
+      ),
+      tabPanel("Plot"),
+      
+)
 )
 
-# Define server logic required to draw a histogram
 server <- function(input, output) {
 
-    output$distPlot <- renderPlot({
-        # generate bins based on input$bins from ui.R
-        x    <- faithful[, 2]
-        bins <- seq(min(x), max(x), length.out = input$bins + 1)
-
-        # draw the histogram with the specified number of bins
-        hist(x, breaks = bins, col = 'darkgray', border = 'white',
-             xlab = 'Waiting time to next eruption (in mins)',
-             main = 'Histogram of waiting times')
+    output$sample <- renderDataTable({
+      Nfl %>% 
+        sample_n(5)
     })
 }
 
-# Run the application 
 shinyApp(ui = ui, server = server)
