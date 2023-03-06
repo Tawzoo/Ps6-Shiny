@@ -19,7 +19,7 @@ ui <- fluidPage(
               p("The dataset contains", em(nrow(Nfl)), "observations", em(ncol(Nfl)), 
                 " variables \n"),
               p("Here are some random samples from the data \n"),
-              sidebarPanel(
+              mainPanel(
                     tableOutput("about"),
                     )
               ),
@@ -49,9 +49,17 @@ ui <- fluidPage(
       ),
       tabPanel("Table",
                sidebarPanel(
-                 
+                 p("This page shows the", strong("amount of players"), "that were drafted from the college
+                 thoughtout the league, their", em("position, average height and weight"), 
+                 "of those position. Please, select college/colleges to analyze. \n"),
+                 p(em("In order to decrease size of the list, colleges needed have at least 20 players 
+                 to be drafted. \n")),
+                 uiOutput("CheckboxCollege")
                ),
                mainPanel(
+                 textOutput("Info2"),
+                 tableOutput("Table"),
+                 textOutput("Info3")
                  
                )
                )
@@ -62,32 +70,36 @@ ui <- fluidPage(
 
 server <- function(input, output) {
 
+    #Creating a sample of the data
     output$about <- renderTable({
       Nfl %>% 
         sample_n(5)
     })
     
+    #Reactive for the position checkbox 
     position_data <- reactive({
       s1 <- Nfl %>% 
         filter(Position %in% input$Position_Select)
       
     })
     
+    #The position check box 
     output$CheckboxPosition <- renderUI({
       s2 <- Nfl %>% 
         filter(!is.na(Position))
       checkboxGroupInput("Position_Select", "Choose position",
-                         choices = unique(s2$Position), selected = "QB"
-                        )
+                         choices = unique(s2$Position))
     })
+    
+    #The position plot 
     output$plot <- renderPlot({
       p <- position_data() %>% 
         filter(!is.na(`Weight (lbs)`),
                !is.na(`Height (inches)`)) %>% 
         mutate(Weight = `Weight (lbs)`, Height = `Height (inches)`) %>%
-        group_by(Position,Height) %>% 
+        group_by(Position, Height) %>% 
         mutate(mWeight = mean(Weight)) %>% 
-        ggplot(aes(Height, mWeight, position = "dodge"))+
+        ggplot(aes(Height, mWeight, size = 2))+
         geom_point(col = input$color)+
         labs(title = "Height vs. Average Weight",
              x = "Height (ins)", y = "Average Weight (lbs)")+
@@ -100,7 +112,9 @@ server <- function(input, output) {
 
     })
     
+    #The text under the plot 
     output$Info1 <- renderText({
+      if(nrow(position_data()) > 0){
       avg_Weight <- position_data() %>%
         filter(!is.na(`Weight (lbs)`)) %>% 
         summarize(mWeight = mean(`Weight (lbs)`))
@@ -109,12 +123,60 @@ server <- function(input, output) {
         summarize(mHeight = mean(`Height (inches)`))
       paste("This positions' average weight was", round(avg_Weight, 2), " lbs and
             the average height was", round(avg_Height, 2), "in")
+      }
     })
     
-    output$data_table <- renderTable({
+    #The College check box 
+    output$CheckboxCollege <- renderUI({
+      s3 <- Nfl %>% 
+        filter(!is.na(College), College != "No College",
+               !is.na(Position)) %>% 
+        group_by(College) %>% 
+        mutate(count = n()) %>% 
+        filter(count > 20)
+      
+      checkboxGroupInput("College_Select", "Choose College",
+                         choices = unique(s3$College),
+                         selected = "Clemson")
+    })
+    
+    #Reactive for the college check box
+    College_data <- reactive({
+      s4 <- Nfl %>% 
+        filter(College %in% input$College_Select)
+    })
+    
+    
+    #The college table 
+    output$Table <- renderTable({
+      t <- College_data() %>% 
+        filter(!is.na(Position)) %>%
+        group_by(Position) %>% 
+        summarize(count = n(), Height = mean(`Height (inches)`),
+                  Weight = mean(`Weight (lbs)`)) 
       
     })
     
+    #The texts above the table
+    output$Info2 <- renderText({
+      total <- College_data() %>% 
+        filter(!is.na(Position)) %>%
+        summarize(count = n())
+      paste("The college/colleges had total", total, "amount of players
+            drafted into the NFl from 1920-2016 \n")
+        
+    })
+    
+    output$Info3 <- renderText({
+      avg_Weight <- College_data() %>%
+        filter(!is.na(`Weight (lbs)`)) %>% 
+        summarize(mWeight = mean(`Weight (lbs)`))
+      avg_Height <- College_data() %>%
+        filter(!is.na(`Height (inches)`)) %>% 
+        summarize(mHeight = mean(`Height (inches)`))
+      paste("This colleges' players average weight was", round(avg_Weight, 2), 
+      " lbs and the average height was", round(avg_Height, 2), "in \n")
+    })
 
 }
 
