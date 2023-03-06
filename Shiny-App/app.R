@@ -18,13 +18,21 @@ ui <- fluidPage(
               p("The weights are measured in lbs and the height are in inches \n"),
               p("The dataset contains", em(nrow(Nfl)), "observations", em(ncol(Nfl)), 
                 " variables \n"),
-              p("Here are some samples from the data \n"),
-              dataTableOutput("about")),
+              p("Here are some random samples from the data \n"),
+              sidebarPanel(
+                fluidRow(
+                  column(10,
+                    tableOutput("about")
+                  ),
+                  column()
+              )
+              )
+              ),
       tabPanel("Plot",
                  sidebarPanel(
                    p("This pages shows a graph of", em("Height vs Average Weight"), "for players 
                      in particular position. Please select a", strong("position"), "to analyze
-                     and a color of your pleasing."),
+                     and a", strong("color"), "of your pleasing."),
                    fluidRow(
                      column(6,
                             radioButtons("color", "Choose color",
@@ -40,9 +48,18 @@ ui <- fluidPage(
                    )
                  ),
                 mainPanel(
-                  plotOutput("plot", width = "800px", height = "600px")
+                  plotOutput("plot", width = "800px", height = "600px"),
+                  textOutput("Info1")
                   )
-      )
+      ),
+      tabPanel("Table",
+               sidebarPanel(
+                 
+               ),
+               mainPanel(
+                 
+               )
+               )
       
   )
 )
@@ -50,7 +67,7 @@ ui <- fluidPage(
 
 server <- function(input, output) {
 
-    output$about <- renderDataTable({
+    output$about <- renderTable({
       Nfl %>% 
         sample_n(5)
     })
@@ -78,14 +95,28 @@ server <- function(input, output) {
         geom_point(col = input$color)+
         labs(title = "Height vs. Average Weight",
              x = "Height (ins)", y = "Average Weight (lbs)")+
-        theme(plot.title = element_text(hjust = 0.5))+
-        
+        theme(plot.title = element_text(hjust = 0.5))
       if(nrow(position_data()) == 0){
         p <- p + 
           labs(title = "Please select a position")
       }
         p
 
+    })
+    
+    output$Info1 <- renderText({
+      avg_Weight <- position_data() %>%
+        filter(!is.na(`Weight (lbs)`)) %>% 
+        summarize(mWeight = mean(`Weight (lbs)`))
+      avg_Height <- position_data() %>%
+        filter(!is.na(`Height (inches)`)) %>% 
+        summarize(mHeight = mean(`Height (inches)`))
+      paste("This positions' average weight was", round(avg_Weight, 2), " lbs and
+            the average height was", round(avg_Height, 2), "in")
+    })
+    
+    output$data_table <- renderTable({
+      
     })
     
 
