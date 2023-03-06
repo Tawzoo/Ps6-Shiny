@@ -20,13 +20,8 @@ ui <- fluidPage(
                 " variables \n"),
               p("Here are some random samples from the data \n"),
               sidebarPanel(
-                fluidRow(
-                  column(10,
-                    tableOutput("about")
-                  ),
-                  column()
-              )
-              )
+                    tableOutput("about"),
+                    )
               ),
       tabPanel("Plot",
                  sidebarPanel(
@@ -77,6 +72,7 @@ server <- function(input, output) {
         filter(Position %in% input$Position_Select)
       
     })
+    
     output$CheckboxPosition <- renderUI({
       s2 <- Nfl %>% 
         filter(!is.na(Position))
